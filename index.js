@@ -82,23 +82,23 @@ bot.on("message", function(message) {
 			const aes_iv = crypto.randomBytes(16);
 			const aes_key = crypto.pbkdf2Sync(aes_pass, aes_salt, 10000, 32, 'sha256');
 			const cipher = crypto.createCipheriv('aes-256-cbc', aes_key, aes_iv);
-			const encrypted = Buffer.concat([cipher.update("hello, world!", 'utf8'), cipher.final()]);
+			const encrypted = Buffer.concat([cipher.update(content, 'utf8'), cipher.final()]);
 			////console.log("encrypted: "+ encrypted.toString('base64'));
 			////console.log("key: "+aes_key.toString('hex'));
 			////console.log("iv: "+ aes_iv.toString('hex'));
-			// Decrypt using: echo -ne "<encrypted_b64>" | base64 -d | openssl aes-256-cbc -d -iv <iv_hex> -K <key_hex>
+			// Decrypt using: echo -ne "<notes_hex>" | base64 -d | openssl aes-256-cbc -d -iv <iv_hex> -K <key_hex>
 
 			const rsa_key = RSA_PUBLIC;
 			const aes_key_encrypted = crypto.publicEncrypt(
 				{ key: rsa_key, padding: crypto.constants.RSA_PKCS1_PADDING },
-				Buffer.from(aes_key)
+				Buffer.from(aes_key.toString('hex'))
 			);
 			// Decrypt using: echo -ne "<aes_key_encrypted_b64>" | base64 -d | openssl rsautl -decrypt -inkey ~/.ssh/id_rsa.pem
 
 			pixels.push({
 				"date": meta.date,
 				"mood": parseInt(meta.mood),
-				"notes": encrypted.toString('hex'),
+				"notes": encrypted.toString('base64'),
 				"key": aes_key_encrypted.toString('base64'),
 				"iv": aes_iv.toString('hex')
 			});
