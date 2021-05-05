@@ -105,6 +105,7 @@ bot.on("message", function(message) {
 		}
 
 		fs.writeFileSync('pixels.json', JSON.stringify(pixels, null, "\t"));
+		message.react("👍");
 	}
 });
 
