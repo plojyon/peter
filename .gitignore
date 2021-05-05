@@ -1,3 +1,5 @@
 .env
 pixels.json
 node_modules/
+*.pem
+*.key
