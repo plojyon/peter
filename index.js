@@ -10,8 +10,6 @@ const bot = new Discord.Client();
 const client = bot; // alias
 const fs = require('fs'); // FILE SYSTEM
 const crypto = require('crypto');
-const NodeRSA = require('node-rsa');
-const CryptoJS = require("crypto-js");
 require('dotenv').config({path: __dirname + '/.env'}); // env variables (client secret)
 
 // if running multiple instances, use this ID to differentiate between them
@@ -110,18 +108,10 @@ bot.on("message", function(message) {
 });
 
 bot.on('ready', function() {
-	console.log('Peter ready!'); // bot initialization complete
+	console.log('Peter ready!');
 });
 
 console.log("Peter is waking up ...");
 bot.login(process.env["CLIENT_SECRET"]).then(() => {
-	console.log("Logged in alright"); // didn't crash (yet)
+	console.log("Logged in alright");
 });
-
-
-/*
-[
-	{"date": "2001-04-15", "mood": 1, "notes": "I was born", "encrypted": "skdfjaskdj", "key": "123"},
-	{"date": "2021-05-03", "mood": 3, "notes": "I am today", "encrypted": "askjdhf", "key": "445"}
-]
-*/
