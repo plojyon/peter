@@ -2,6 +2,7 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto.Cipher import PKCS1_v1_5
+from Crypto.Util.Padding import unpad
 from base64 import b64decode
 from getpass import getpass # input() without console echo
 import json
@@ -31,7 +32,7 @@ def get_notes(rsa_key, data):
 	iv = bytearray.fromhex(data["iv"]);
 	cipher = b64decode(data["notes"]);
 	plaintext = AES.new(aes_key, AES.MODE_CBC, iv=iv).decrypt(cipher);
-	return plaintext.decode("utf-8").strip();
+	return unpad(plaintext, 16).decode("utf-8");
 
 def get_rsa_key():
 	with open("/home/yon/.ssh/id_rsa.pem", "r") as file:
