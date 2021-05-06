@@ -3,6 +3,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.Padding import unpad
+from datetime import datetime # check if date is valid
 from base64 import b64decode
 from getpass import getpass # input() without console echo
 import json
@@ -42,6 +43,28 @@ def get_rsa_key():
 		except:
 			return False;
 
+def find_illegal_dates(data):
+	ill = {};
+	seen = set();
+	for day in data:
+		date = day["date"];
+
+		# check if date is duplicated
+		if (date in seen):
+			ill[date] = "duplicate";
+		else:
+			seen.add(date);
+
+		# check if date is valid
+		year = int(date[0:4]);
+		month = int(date[5:7]);
+		day = int(date[8:10]);
+		try:
+			datetime(year, month, day);
+		except ValueError:
+			ill[date] = "illegal";
+	return ill;
+
 key = get_rsa_key();
 while (not key):
 	print("Sorry, try again");
@@ -53,9 +76,15 @@ with open(filename, "r") as file:
 out = [];
 for day in pixels:
 	decrypted = {};
-	decrypted["notes"] = get_notes(key, day);
+	decrypted["date"] = day["date"];
 	decrypted["mood"] = day["mood"];
+	decrypted["notes"] = get_notes(key, day);
 	out.append(decrypted);
+
+out.sort(key=lambda x: x["date"]);
+illegals = find_illegal_dates(out);
+if (illegals):
+	print("Found",len(illegals),"illegal entries:",illegals);
 
 with open(out_filename, "w") as file:
 	file.write(json.dumps(out));
