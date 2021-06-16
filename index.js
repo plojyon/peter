@@ -183,8 +183,13 @@ function status() {
 	missing = missing.map((x) => "`" + x + "`");
 	invalid = invalid.map((x) => "`" + x + "`");
 
-	const last_date = pixels[pixels.length - 1].date;
-	const last_weekday = weekdays[new Date(last_date).getDay()]
+	let last_index = pixels.length;
+	let last_date;
+	do {
+		last_index--;
+		last_date = pixels[last_index].date;
+	} while (!isValidDateString(last_date) && last_index != 0);
+	const last_weekday = weekdays[new Date(last_date).getDay()];
 	str = "Last updated on **" + last_weekday + "** ("+last_date+")";
 
 	if (missing.length > 0) {
