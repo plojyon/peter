@@ -57,7 +57,7 @@ function isValidDate(year, month, day) {
 	if (d.getFullYear() != parseInt(year)) return false;
 	if (d.getMonth() + 1 != parseInt(month)) return false;
 	if (d.getDate() != parseInt(day)) return false;
-	if (d.getFullYear() > 2040) return false;
+	if (d > new Date()) return false;
 	return true;
 }
 
