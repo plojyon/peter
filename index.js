@@ -88,7 +88,6 @@ function find_missing_entries(pixels, duplicate) {
 	while (i < pixels.length) {
 		if (dateEquals(new Date(pixels[i].date), day)) {
 			const count_dupes = duplicate.length - duplicate.filter((x) => x != pixels[i].date).length;
-			console.log(pixels[i].date+" has "+count_dupes+" dupes.");
 			i += 1 + count_dupes;
 		}
 		else {
@@ -151,7 +150,11 @@ function status() {
 
 	let rawdata = fs.readFileSync('pixels.json');
 	let pixels = JSON.parse(rawdata);
-	pixels.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+	pixels.sort((a, b) => {
+		if (a.date > b.date) return 1;
+		if (a.date < b.date) return -1;
+		return 0;
+	});
 	if (pixels.length == 0) return "No data.";
 
 	let duplicate = find_duplicate_entries(pixels);
