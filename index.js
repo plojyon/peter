@@ -27,6 +27,16 @@ RSA_PUBLIC = process.env["RSA_PUBLIC"];
 if (!RSA_PUBLIC) console.log("Missing RSA_PUBLIC");
 else RSA_PUBLIC = RSA_PUBLIC.replace(/\\n/g, "\n");
 
+const weekdays = [
+	"Sunday",
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday"
+];
+
 bot.on("message", function(message) {
 	// DEBUG:
 	// if the message is from me and starts with PREFIX, eval() the message
@@ -35,12 +45,12 @@ bot.on("message", function(message) {
 		try {
 			// if the message is in ```code blocks```, supress the return value
 			if (message.content.indexOf("```") != 1) {
-				message.channel.send("```"+eval(message.content.substring(1))+"```")
+				message.channel.send("```"+eval(message.content.substring(PREFIX.length))+"```")
 					.catch((e)=>{console.log(e)})
 			}
 			else {
 				// log the return value to the console instead
-				console.log(eval(message.content.slice(4,-3)));
+				console.log(eval(message.content.slice(PREFIX.length + 3, -3)));
 			}
 			return;
 		}
@@ -51,11 +61,10 @@ bot.on("message", function(message) {
 		}
 	}
 
-	let date = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)\n[Mm]ood:? ?(?<mood>[1-5])\n/;
+	let date = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: (?<weekday>\w+))?\n[Mm]ood:? ?(?<mood>[1-5])\n/;
 	if (message.content.match(date) != null) {
 
 		let rawdata = fs.readFileSync('pixels.json');
-		console.log("Read pixels data: " + rawdata);
 		let pixels = JSON.parse(rawdata);
 
 		entries = message.content.split("\n\n");
@@ -63,11 +72,35 @@ bot.on("message", function(message) {
 			meta = entries[entry].match(date);
 
 			if (meta == null) {
-				message.channel.send("Entry "+entry+" does not match the date format (20xx-xx-xx mood: x)\nSkipping ...");
+				message.channel.send(
+					"Entry " + entry + " does not match the date format "
+					+ "(20xx-xx-xx [weekday] mood: x)\nSkipping ...");
 				continue;
 			}
 			meta = meta.groups;
 			meta.date = meta.year+"-"+meta.month+"-"+meta.day;
+
+			// check if date is valid
+			if (!isValidDate(meta.year, meta.month, meta.day)) {
+				message.channel.send(
+					"Entry " + entry + " is an invalid date: "
+					+ meta.date + ". Skipping ...");
+				continue;
+			}
+
+			// if a weekday was provided, make sure it's correct
+			if (meta.weekday) {
+				const d = new Date(meta.year, meta.month, meta.day);
+				const actual_weekday = weekdays[d.getDay()];
+
+				if (meta.weekday.toUpper() != actual_weekday.toUpper()) {
+					message.channel.send(
+						"Entry " + entry + " says " + meta.weekday
+						+ ", but " + meta.date + " is a " + actual_weekday
+						+ ". Skipping this entry ...");
+					continue;
+				}
+			}
 
 			// remove the first two lines (strip metadata)
 			content = entries[entry].split("\n")
