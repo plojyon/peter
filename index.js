@@ -69,7 +69,7 @@ function isValidDateString(str) {
 	if (!d) return false;
 	if (d.length != 3) return false;
 
-	return isValidDate(d[0], d[1], d[2]));
+	return isValidDate(d[0], d[1], d[2]);
 }
 
 function dateEquals(a, b) {
@@ -97,6 +97,8 @@ function find_missing_entries(pixels, duplicate) {
 	let day = new Date(pixels[0].date);
 	let missing = [];
 	while (i < pixels.length) {
+		if (!isValidDateString(pixels[i].date)) continue;
+
 		if (dateEquals(new Date(pixels[i].date), day)) {
 			const count_dupes = duplicate.length - duplicate.filter((x) => x != pixels[i].date).length;
 			i += 1 + count_dupes;
@@ -164,11 +166,7 @@ function status() {
 
 	let rawdata = fs.readFileSync('pixels.json');
 	let pixels = JSON.parse(rawdata);
-	pixels.sort((a, b) => {
-		if (a.date > b.date) return 1;
-		if (a.date < b.date) return -1;
-		return 0;
-	});
+	pixels.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
 	if (pixels.length == 0) return "No data.";
 
 	let duplicate = find_duplicate_entries(pixels);
