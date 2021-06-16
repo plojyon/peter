@@ -61,6 +61,17 @@ function isValidDate(year, month, day) {
 	return true;
 }
 
+function isValidDateString(str) {
+	if (!str) return false;
+
+	let d = str.split("-");
+
+	if (!d) return false;
+	if (d.length != 3) return false;
+
+	return isValidDate(d[0], d[1], d[2]));
+}
+
 function dateEquals(a, b) {
 	return a.getFullYear() == b.getFullYear()
 		&& a.getMonth() == b.getMonth()
@@ -101,8 +112,7 @@ function find_missing_entries(pixels, duplicate) {
 function find_invalid_entries(pixels) {
 	let invalid = [];
 	for (let i in pixels) {
-		let d = pixels[i].date.split("-");
-		if (!isValidDate(d[0], d[1], d[2])) invalid.push(pixels[i].date);
+		if (!isValidDateString(pixels[i].date)) invalid.push(pixels[i].date);
 	}
 	return invalid;
 }
@@ -112,11 +122,15 @@ function group_sequences(pixels) {
 	// ["2020-01-01", "2020-01-02", "2020-01-03", "2021-03-31"]
 	// will be converted to
 	// ["2020-01-01 to 2020-01-03", "2021-03-31"]
-	let consec = false; // am I currently inside a consecutive group?
+	// invalid dates will be dropped
 	let converted = [];
+	let consec = false; // am I currently inside a consecutive group?
 
 	for (let i = 0; i < pixels.length; i++) {
+		if (!isValidDateString(pixels[i])) continue;
+
 		let next_day = date2str(tomorrow(new Date(pixels[i])));
+
 		if (i+1 != pixels.length && pixels[i+1] == next_day) {
 			if (!consec) {
 				converted.push(pixels[i] + " to ");
