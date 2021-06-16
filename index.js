@@ -37,6 +37,150 @@ const weekdays = [
 	"Saturday"
 ];
 
+function date2str(day) {
+	return day.getFullYear()
+	+ "-" +
+	('0' + (day.getMonth() + 1)).slice(-2)
+	+ "-" +
+	('0' + day.getDate()).slice(-2);
+}
+
+function tomorrow(day) {
+	return new Date(day.getFullYear(), day.getMonth(), day.getDate()+1);
+}
+
+function isValidDate(year, month, day) {
+	const d = new Date(year, month, day);
+	if (!d) return false;
+	if (!(d instanceof Date)) return false;
+	if (isNaN(d.getTime())) return false;
+	if (d.getFullYear() != parseInt(year)) return false;
+	if (d.getMonth() != parseInt(month)) return false;
+	if (d.getDate() != parseInt(day)) return false;
+	if (d.getFullYear() > 2040) return false;
+	return true;
+}
+
+function dateEquals(a, b) {
+	return a.getFullYear() == b.getFullYear()
+		&& a.getMonth() == b.getMonth()
+		&& a.getDate() == b.getDate();
+}
+
+function find_duplicate_entries(pixels) {
+	// expects sorted input (ascending)
+	let i = 0;
+	let duplicate = [];
+	while (i+1 < pixels.length) {
+		if (pixels[i].date == pixels[i+1].date) {
+			duplicate.push(pixels[i].date);
+		}
+		i++;
+	}
+	return duplicate;
+}
+
+function find_missing_entries(pixels, duplicate) {
+	// expects sorted input (ascending)
+	let i = 0;
+	let day = new Date(pixels[0].date);
+	let missing = [];
+	while (i < pixels.length) {
+		if (dateEquals(new Date(pixels[i].date), day)) {
+			const count_dupes = duplicate.length - duplicate.filter((x) => x != pixels[i].date).length;
+			console.log(pixels[i].date+" has "+count_dupes+" dupes.");
+			i += 1 + count_dupes;
+		}
+		else {
+			missing.push(date2str(day));
+		}
+		day = tomorrow(day);
+	}
+	return missing;
+}
+
+function find_invalid_entries(pixels) {
+	let invalid = [];
+	for (let i in pixels) {
+		let d = pixels[i].date.split("-");
+		if (!isValidDate(d[0], d[1], d[2])) invalid.push(pixels[i].date);
+	}
+	return invalid;
+}
+
+function group_sequences(pixels) {
+	// groups consecutive dates in a sorted (ascending) array of datestrings
+	// ["2020-01-01", "2020-01-02", "2020-01-03", "2021-03-31"]
+	// will be converted to
+	// ["2020-01-01 to 2020-01-03", "2021-03-31"]
+	let consec = false; // am I currently inside a consecutive group?
+	let converted = [];
+
+	for (let i = 0; i < pixels.length; i++) {
+		let next_day = date2str(tomorrow(new Date(pixels[i])));
+		if (i+1 != pixels.length && pixels[i+1] == next_day) {
+			if (!consec) {
+				converted.push(pixels[i] + " to ");
+				consec = true;
+			}
+		}
+		else {
+			if (consec) {
+				converted[converted.length - 1] += pixels[i];
+				consec = false;
+			}
+			else {
+				converted.push(pixels[i]);
+			}
+		}
+	}
+
+	if (converted.length > 50) {
+		console.log(converted);
+		converted = ["More than 50 entries"];
+	}
+
+	return converted;
+}
+
+function status() {
+	// Last updated on Wednesday
+	// Missing: 2021-03-01, 2020-04-21
+	// Duplicate: 2021-03-22
+	let str = "";
+
+	let rawdata = fs.readFileSync('pixels.json');
+	let pixels = JSON.parse(rawdata);
+	pixels.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+	if (pixels.length == 0) return "No data.";
+
+	let duplicate = find_duplicate_entries(pixels);
+	let missing = find_missing_entries(pixels, duplicate);
+	missing = group_sequences(missing); // in case I accidentally add an entry in 2077 or something
+	let invalid = find_invalid_entries(pixels);
+
+	// add formatting
+	duplicate = duplicate.map((x) => "`" + x + "`");
+	missing = missing.map((x) => "`" + x + "`");
+	invalid = invalid.map((x) => "`" + x + "`");
+
+	const last_date = pixels[pixels.length - 1].date;
+	const last_weekday = weekdays[new Date(last_date).getDay()]
+	str = "Last updated on **" + last_weekday + "** ("+last_date+")";
+
+	if (missing.length > 0) {
+		str += "\nMissing: " + missing.join(", ");
+	}
+	if (duplicate.length > 0) {
+		str += "\nDuplicate: " + duplicate.join(", ");
+	}
+	if (invalid.length > 0) {
+		str += "\nInvalid: " + invalid.join(", ");
+	}
+
+	return str;
+}
+
 bot.on("message", function(message) {
 	// DEBUG:
 	// if the message is from me and starts with PREFIX, eval() the message
@@ -59,6 +203,11 @@ bot.on("message", function(message) {
 				.catch((e)=>{console.log(e)})
 			return;
 		}
+	}
+
+	if (message.content == "pixels") {
+		message.channel.send(status());
+		return;
 	}
 
 	let date = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: (?<weekday>\w+))?\n[Mm]ood:? ?(?<mood>[1-5])\n/;
@@ -136,12 +285,49 @@ bot.on("message", function(message) {
 		}
 
 		fs.writeFileSync('pixels.json', JSON.stringify(pixels, null, "\t"));
-		message.react("👍");
+
+		let emoji = "👍";
+		switch (entries.length) {
+			case 1:
+				emoji = "👍";
+				break;
+			case 2:
+				emoji = "2️⃣";
+				break;
+			case 3:
+				emoji = "3️⃣";
+				break;
+			case 4:
+				emoji = "4️⃣";
+				break;
+			case 5:
+				emoji = "5️⃣";
+				break;
+			case 6:
+				emoji = "6️⃣";
+				break;
+			case 7:
+				emoji = "7️⃣";
+				break;
+			case 8:
+				emoji = "8️⃣";
+				break;
+			case 9:
+				emoji = "9️⃣";
+				break;
+			default:
+				emoji = "⭐";
+				break;
+		}
+		message.react(emoji);
+
+		setTimeout(()=>{message.delete()}, 10000);
 	}
 });
 
 bot.on('ready', function() {
 	console.log('Peter ready!');
+	bot.user.setActivity("pixels");
 });
 
 console.log("Peter is waking up ...");
