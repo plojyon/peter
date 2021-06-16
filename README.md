@@ -55,3 +55,5 @@ ADMIN_ID=356393895216545803
 PREFIX=+
 RSA_PUBLIC=-----BEGIN RSA PUBLIC KEY-----\nkeykeykeykeykey\n-----END RSA PUBLIC KEY-----
 ```
+
+Where the newlines in RSA_PUBLIC are replaced with a literal "\\n"
