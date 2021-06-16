@@ -50,12 +50,12 @@ function tomorrow(day) {
 }
 
 function isValidDate(year, month, day) {
-	const d = new Date(year, month, day);
+	const d = new Date(year, month - 1, day);
 	if (!d) return false;
 	if (!(d instanceof Date)) return false;
 	if (isNaN(d.getTime())) return false;
 	if (d.getFullYear() != parseInt(year)) return false;
-	if (d.getMonth() != parseInt(month)) return false;
+	if (d.getMonth() + 1 != parseInt(month)) return false;
 	if (d.getDate() != parseInt(day)) return false;
 	if (d.getFullYear() > 2040) return false;
 	return true;
@@ -263,7 +263,7 @@ bot.on("message", function(message) {
 
 			// if a weekday was provided, make sure it's correct
 			if (meta.weekday) {
-				const d = new Date(meta.year, meta.month, meta.day);
+				const d = new Date(meta.year, meta.month - 1, meta.day);
 				const actual_weekday = weekdays[d.getDay()];
 
 				if (meta.weekday.toUpper() != actual_weekday.toUpper()) {
