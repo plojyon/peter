@@ -94,7 +94,12 @@ function find_duplicate_entries(pixels) {
 function find_missing_entries(pixels, duplicate) {
 	// expects sorted input (ascending)
 	let i = 0;
-	let day = new Date(pixels[0].date);
+
+	// handle edge case: first entry is invalid
+	while (i != pixels.length && !isValidDate(pixels[i].date)) i++;
+	if (i == pixels.length) return [];
+
+	let day = new Date(pixels[i].date);
 	let missing = [];
 	while (i < pixels.length) {
 		if (dateEquals(new Date(pixels[i].date), day)) {
