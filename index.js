@@ -166,7 +166,11 @@ function status() {
 
 	let rawdata = fs.readFileSync('pixels.json');
 	let pixels = JSON.parse(rawdata);
-	pixels.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+	pixels.sort((a, b) => {
+		if (a.date > b.date) return 1;
+		if (a.date < b.date) return -1;
+		return 0;
+	});
 	if (pixels.length == 0) return "No data.";
 
 	let duplicate = find_duplicate_entries(pixels);
