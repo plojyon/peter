@@ -97,8 +97,6 @@ function find_missing_entries(pixels, duplicate) {
 	let day = new Date(pixels[0].date);
 	let missing = [];
 	while (i < pixels.length) {
-		if (!isValidDateString(pixels[i].date)) continue;
-
 		if (dateEquals(new Date(pixels[i].date), day)) {
 			const count_dupes = duplicate.length - duplicate.filter((x) => x != pixels[i].date).length;
 			i += 1 + count_dupes;
@@ -107,6 +105,8 @@ function find_missing_entries(pixels, duplicate) {
 			missing.push(date2str(day));
 		}
 		day = tomorrow(day);
+
+		while (i < pixels.length && !isValidDateString(pixels[i].date)) i++;
 	}
 	return missing;
 }
