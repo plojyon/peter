@@ -271,7 +271,7 @@ bot.on("message", function(message) {
 				const d = new Date(meta.year, meta.month - 1, meta.day);
 				const actual_weekday = weekdays[d.getDay()];
 
-				if (meta.weekday.toUpper() != actual_weekday.toUpper()) {
+				if (meta.weekday.toUpperCase() != actual_weekday.toUpperCase()) {
 					message.channel.send(
 						"Entry " + entry + " says " + meta.weekday
 						+ ", but " + meta.date + " is a " + actual_weekday
