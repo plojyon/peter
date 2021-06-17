@@ -36,7 +36,7 @@ def get_notes(rsa_key, data):
 	return unpad(plaintext, 16).decode("utf-8");
 
 def get_rsa_key():
-	with open("/home/yon/.ssh/id_rsa.pem", "r") as file:
+	with open("~/.ssh/id_rsa.pem", "r") as file:
 		passphrase = getpass("Enter RSA private key passphrase: ");
 		try:
 			return PKCS1_v1_5.new(RSA.import_key(file.read(), passphrase));
