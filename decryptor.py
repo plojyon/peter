@@ -9,17 +9,37 @@ from getpass import getpass # input() without console echo
 import json
 import sys # command line arguments
 import os # check for file overwrite
+import re # search for files like 2021-03-01.json
 
-if (len(sys.argv) != 2):
-	print("Usage: decryptor.py <file.json>");
+# default paths
+DEF_PATH_DATA = "/shark/backups/pixels"
+DEF_PATH_KEY = "/home/yon/.ssh/id_rsa.pem"
+
+if (len(sys.argv) > 3):
+	print("Usage: decryptor.py <path/file.json> <path/RSA_key.pem>");
 	exit();
 
-filename = sys.argv[1];
+if (len(sys.argv) > 1):
+	filename = sys.argv[1];
+else:
+	# get all files
+	files = [f for f in os.listdir(DEF_PATH_DATA)];
+	# filter directories
+	files = [f for f in files if os.path.isfile(os.path.join(DEF_PATH_DATA, f))];
+	# filter with regex
+	files = [f for f in files if re.match(r'^\d\d\d\d-\d\d-\d\d.json$', f)];
+	# sort, so the last element is the latest backup
+	files.sort();
+	filename = os.path.join(DEF_PATH_DATA, files[-1]);
+
+if (len(sys.argv) > 2):
+	DEF_PATH_KEY = sys.argv[2];
+
 dir = os.path.dirname(os.path.abspath(filename));
 out_filename = os.path.join(dir, "decrypted.json");
 if (os.path.isfile(out_filename)):
-	yn = input(os.path.basename(out_filename) + " already exists at " + os.path.dirname(out_filename) + ". Overwrite? [y/N] ");
-	if (yn.lower() != "y"):
+	yn = input(os.path.basename(out_filename) + " already exists at " + os.path.dirname(out_filename) + ". Overwrite? [Y/n] ");
+	if (yn.lower() == "n"):
 		print("Abort.");
 		exit();
 print("Decrypting",filename,"...");
@@ -36,7 +56,7 @@ def get_notes(rsa_key, data):
 	return unpad(plaintext, 16).decode("utf-8");
 
 def get_rsa_key():
-	with open("/home/yon/.ssh/id_rsa.pem", "r") as file:
+	with open(DEF_PATH_KEY, "r") as file:
 		passphrase = getpass("Enter RSA private key passphrase: ");
 		try:
 			return PKCS1_v1_5.new(RSA.import_key(file.read(), passphrase));
