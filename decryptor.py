@@ -14,13 +14,14 @@ import re # search for files like 2021-03-01.json
 # default paths
 DEF_PATH_DATA = "/shark/backups/pixels"
 DEF_PATH_KEY = "/home/yon/.ssh/id_rsa.pem"
+DEF_OUTPUT = "/tmp/pixels_decrypted.json"
 
-if (len(sys.argv) > 3):
-	print("Usage: decryptor.py <path/file.json> <path/RSA_key.pem>");
+if (len(sys.argv) > 4) or ((len(sys.argv) > 1) and (sys.argv[1] == "--help")):
+	print("Usage: decryptor.py <path/file.json> <path/decrypted_output.json> <path/RSA_key.pem>");
 	exit();
 
 if (len(sys.argv) > 1):
-	filename = sys.argv[1];
+	in_filename = sys.argv[1];
 else:
 	# get all files
 	files = [f for f in os.listdir(DEF_PATH_DATA)];
@@ -30,19 +31,24 @@ else:
 	files = [f for f in files if re.match(r'^\d\d\d\d-\d\d-\d\d.json$', f)];
 	# sort, so the last element is the latest backup
 	files.sort();
-	filename = os.path.join(DEF_PATH_DATA, files[-1]);
+	in_filename = os.path.join(DEF_PATH_DATA, files[-1]);
 
 if (len(sys.argv) > 2):
-	DEF_PATH_KEY = sys.argv[2];
+	out_filename = sys.argv[2];
+else:
+	out_filename = DEF_OUTPUT;
 
-dir = os.path.dirname(os.path.abspath(filename));
-out_filename = os.path.join(dir, "decrypted.json");
+if (len(sys.argv) > 3):
+	key_path = sys.argv[3];
+else:
+	key_path = DEF_PATH_KEY;
+
 if (os.path.isfile(out_filename)):
 	yn = input(os.path.basename(out_filename) + " already exists at " + os.path.dirname(out_filename) + ". Overwrite? [Y/n] ");
 	if (yn.lower() == "n"):
 		print("Abort.");
 		exit();
-print("Decrypting",filename,"...");
+print("Decrypting",in_filename,"...");
 
 def get_notes(rsa_key, data):
 	bin = rsa_key.decrypt(b64decode(data["key"]), "failed");
@@ -56,7 +62,7 @@ def get_notes(rsa_key, data):
 	return unpad(plaintext, 16).decode("utf-8");
 
 def get_rsa_key():
-	with open(DEF_PATH_KEY, "r") as file:
+	with open(key_path, "r") as file:
 		passphrase = getpass("Enter RSA private key passphrase: ");
 		try:
 			return PKCS1_v1_5.new(RSA.import_key(file.read(), passphrase));
@@ -87,10 +93,10 @@ def find_illegal_dates(data):
 
 key = get_rsa_key();
 while (not key):
-	print("Sorry, try again");
+	print("Sorry, try again.");
 	key = get_rsa_key();
 
-with open(filename, "r") as file:
+with open(in_filename, "r") as file:
 	pixels = json.loads(file.read());
 
 out = [];
@@ -104,9 +110,9 @@ for day in pixels:
 out.sort(key=lambda x: x["date"]);
 illegals = find_illegal_dates(out);
 if (illegals):
-	print("Found",len(illegals),"illegal entries:",illegals);
+	print("WARNING: Found",len(illegals),"illegal entries:",illegals);
 
 with open(out_filename, "w") as file:
 	file.write(json.dumps(out));
 
-print("Done.");
+print("Saved to "+out_filename+".");
