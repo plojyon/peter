@@ -235,7 +235,11 @@ bot.on("message", function(message) {
 	}
 
 	if (message.content == "pixels") {
-		message.channel.send(status());
+		let sendPromise = message.channel.send(status());
+		// delete the user query immediately
+		message.delete().catch();
+		// delete the reply after 20s
+		sendPromise.then(m => setTimeout(()=>m.delete().catch(), 20*1000));
 		return;
 	}
 
