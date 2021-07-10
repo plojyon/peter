@@ -96,7 +96,7 @@ function find_missing_entries(pixels, duplicate) {
 	let i = 0;
 
 	// handle edge case: first entry is invalid
-	while (i != pixels.length && !isValidDate(pixels[i].date)) i++;
+	while (i != pixels.length && !isValidDateString(pixels[i].date)) i++;
 	if (i == pixels.length) return [];
 
 	let day = new Date(pixels[i].date);
