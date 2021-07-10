@@ -203,7 +203,7 @@ function status() {
 		last_weekday = "yesterday";
 	else
 		last_weekday = weekdays[new Date(last_date).getDay()];
-	str = "Last updated on **" + last_weekday + "** ("+last_date+")";
+	str = "Last updated: **" + last_weekday + "** ("+last_date+")";
 
 	// add a warning if this was a long time ago
 	const diffTime = Math.abs(new Date() - new Date(last_date));
