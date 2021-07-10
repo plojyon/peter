@@ -264,7 +264,7 @@ function parseEntry(entry, logger, pixels) {
 
 	if (meta == null) {
 		logger(
-			"Entry " + entry + " does not match the date format "
+			"Entry does not match the date format "
 			+ "(20xx-xx-xx [weekday] mood: x)\nSkipping ...");
 		return;
 	}
@@ -274,7 +274,7 @@ function parseEntry(entry, logger, pixels) {
 	// check if date is valid
 	if (!isValidDate(meta.year, meta.month, meta.day)) {
 		logger(
-			"Entry " + entry + " is an invalid date: "
+			"Entry has an invalid date: "
 			+ meta.date + ". Skipping ...");
 		return;
 	}
@@ -282,7 +282,7 @@ function parseEntry(entry, logger, pixels) {
 	// check if date is a duplicate
 	if (pixels.filter((e) => e.date == meta.date).length != 0) {
 		logger(
-			"Warning: entry " + entry + " is a duplicate!"
+			"Warning: entry is a duplicate!"
 			+ " Both entries will be saved. You might want to note"
 			+ " the circumstances for easier conflict resolution.");
 	}
@@ -294,7 +294,7 @@ function parseEntry(entry, logger, pixels) {
 
 		if (meta.weekday.toUpperCase() != actual_weekday.toUpperCase()) {
 			logger(
-				"Entry " + entry + " says " + meta.weekday
+				"Entry says " + meta.weekday
 				+ ", but " + meta.date + " is a " + actual_weekday
 				+ ". Skipping this entry ...");
 			return;
@@ -302,7 +302,7 @@ function parseEntry(entry, logger, pixels) {
 	}
 
 	// remove the first two lines (strip metadata)
-	content = entries[entry].split("\n")
+	content = entry.split("\n")
 	content.shift();
 	content.shift();
 	content = content.join("\n");
@@ -351,7 +351,7 @@ bot.on("message", function(message) {
 
 		entries = message.content.split("\n\n");
 		for (entry in entries) {
-			entry = parseEntry(entries[entry], message.channel.send, pixels);
+			entry = parseEntry(entries[entry], function(m) {message.channel.send("e"+entry+": "+m)}, pixels);
 			if (entry)
 				encryptedPush(pixels, entry);
 		}
@@ -421,7 +421,7 @@ function fromUnparsedPlaintext(source, dest) {
 
 	entries = message.content.split("\n\n");
 	for (e in entries) {
-		entry = parseEntry(entries[e], console.log, []);
+		entry = parseEntry(entries[e], function(m) {message.channel.send("e"+e+": "+m)}, []);
 		if (entry)
 			encryptedPush(pixels, entry);
 	}
