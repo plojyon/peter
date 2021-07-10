@@ -226,7 +226,10 @@ function status() {
 	return str;
 }
 
-function encryptedPush(pixels, content) {
+function encryptedPush(pixels, entry) {
+	const content = entry.content;
+	const meta = entry.meta;
+
 	const aes_salt = crypto.randomBytes(16);
 	const aes_pass = crypto.randomBytes(32).toString("base64");
 	const aes_iv = crypto.randomBytes(16);
@@ -304,7 +307,7 @@ function parseEntry(entry, logger) {
 	content.shift();
 	content = content.join("\n");
 
-	return content;
+	return {content: content, meta: meta};
 }
 
 bot.on("message", function(message) {
@@ -348,8 +351,8 @@ bot.on("message", function(message) {
 
 		entries = message.content.split("\n\n");
 		for (entry in entries) {
-			content = parseEntry(entries[entry], message.channel.send);
-			encryptedPush(pixels, content);
+			entry = parseEntry(entries[entry], message.channel.send);
+			encryptedPush(pixels, entry);
 		}
 
 		fs.writeFileSync('pixels.json', JSON.stringify(pixels, null, "\t"));
@@ -398,9 +401,11 @@ bot.on("message", function(message) {
 // or when re-encrypting a non-encrypted backup)
 function fromParsedPlaintext(source, dest) {
 	let input = JSON.parse(fs.readFileSync(source));
+	let pixels = [];
 
-	for (entry in input) {
-		encryptedPush(pixels, input[entry]);
+	for (e in input) {
+		const entry = {content: input[e].notes, meta: {date: input[e].date, mood: input[e].mood}};
+		encryptedPush(pixels, entry);
 	}
 
 	fs.writeFileSync(dest, JSON.stringify(pixels, null, "\t"));
@@ -411,11 +416,12 @@ function fromParsedPlaintext(source, dest) {
 // this is equivalent to dumping a large file into a discord message
 function fromUnparsedPlaintext(source, dest) {
 	let input = fs.readFileSync(source);
+	let pixels = [];
 
 	entries = message.content.split("\n\n");
-	for (entry in entries) {
-		content = parseEntry(entries[entry], console.log);
-		encryptedPush(pixels, entries[entry]);
+	for (e in entries) {
+		entry = parseEntry(entries[e], console.log);
+		encryptedPush(pixels, entry);
 	}
 
 	fs.writeFileSync(dest, JSON.stringify(pixels, null, "\t"));
