@@ -259,7 +259,7 @@ function encryptedPush(pixels, entry) {
 
 // receives a raw entry (in the form of datestring_regex)
 // and returnes a parsed version, reporting any errors to `logger`
-function parseEntry(entry, logger) {
+function parseEntry(entry, logger, pixels) {
 	meta = entry.match(datestring_regex);
 
 	if (meta == null) {
@@ -351,7 +351,7 @@ bot.on("message", function(message) {
 
 		entries = message.content.split("\n\n");
 		for (entry in entries) {
-			entry = parseEntry(entries[entry], message.channel.send);
+			entry = parseEntry(entries[entry], message.channel.send, pixels);
 			if (entry)
 				encryptedPush(pixels, entry);
 		}
@@ -421,7 +421,7 @@ function fromUnparsedPlaintext(source, dest) {
 
 	entries = message.content.split("\n\n");
 	for (e in entries) {
-		entry = parseEntry(entries[e], console.log);
+		entry = parseEntry(entries[e], console.log, []);
 		if (entry)
 			encryptedPush(pixels, entry);
 	}
