@@ -285,6 +285,14 @@ bot.on("message", function(message) {
 				continue;
 			}
 
+			// check if date is a duplicate
+			if (pixels.filter((e) => e.date == meta.date).length != 0) {
+				message.channel.send(
+					"Warning: entry " + entry + " is a duplicate!"
+					+ " Both entries will be saved. You might want to note"
+					+ " the circumstances for easier conflict resolution.");
+			}
+
 			// if a weekday was provided, make sure it's correct
 			if (meta.weekday) {
 				const d = new Date(meta.year, meta.month - 1, meta.day);
