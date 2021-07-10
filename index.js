@@ -183,19 +183,34 @@ function status() {
 	missing = group_sequences(missing); // in case I accidentally add an entry in 2077 or something
 	let invalid = find_invalid_entries(pixels);
 
-	// add formatting
+	// add message formatting
 	duplicate = duplicate.map((x) => "`" + x + "`");
 	missing = missing.map((x) => "`" + x + "`");
 	invalid = invalid.map((x) => "`" + x + "`");
 
+	// find the last valid entry
 	let last_index = pixels.length;
 	let last_date;
 	do {
 		last_index--;
 		last_date = pixels[last_index].date;
 	} while (!isValidDateString(last_date) && last_index != 0);
-	const last_weekday = weekdays[new Date(last_date).getDay()];
+
+	let last_weekday;
+	if (last_date == date2str(new Date()))
+		last_weekday = "today";
+	else if (last_date == date2str(new Date(new Date()-1))
+		last_weekday = "yesterday";
+	else
+		last_weekday = weekdays[new Date(last_date).getDay()];
 	str = "Last updated on **" + last_weekday + "** ("+last_date+")";
+
+	// add a warning if this was a long time ago
+	const diffTime = Math.abs(new Date() - new Date(last_date));
+	// (assuming last_date is in the past)
+	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+	if (diffDays >= 7)
+		str += " [more than a week ago]";
 
 	if (missing.length > 0) {
 		str += "\nMissing: " + missing.join(", ");
