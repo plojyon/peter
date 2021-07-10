@@ -11,6 +11,7 @@ const client = bot; // alias
 const fs = require('fs'); // FILE SYSTEM
 const crypto = require('crypto');
 require('dotenv').config({path: __dirname + '/.env'}); // env variables (client secret)
+const datestring_regex = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: (?<weekday>\w+))?\n[Mm]ood:? ?(?<mood>[1-5])\n/;
 
 // if running multiple instances, use this ID to differentiate between them
 CLIENT_ID = process.env["CLIENT_ID"];
@@ -225,6 +226,87 @@ function status() {
 	return str;
 }
 
+function encryptedPush(pixels, content) {
+	const aes_salt = crypto.randomBytes(16);
+	const aes_pass = crypto.randomBytes(32).toString("base64");
+	const aes_iv = crypto.randomBytes(16);
+	const aes_key = crypto.pbkdf2Sync(aes_pass, aes_salt, 10000, 32, 'sha256');
+	const cipher = crypto.createCipheriv('aes-256-cbc', aes_key, aes_iv);
+	const encrypted = Buffer.concat([cipher.update(content, 'utf8'), cipher.final()]);
+	////console.log("encrypted: "+ encrypted.toString('base64'));
+	////console.log("key: "+aes_key.toString('hex'));
+	////console.log("iv: "+ aes_iv.toString('hex'));
+	// Decrypt using: echo -ne "<notes_hex>" | base64 -d | openssl aes-256-cbc -d -iv <iv_hex> -K <key_hex>
+
+	const rsa_key = RSA_PUBLIC;
+	const aes_key_encrypted = crypto.publicEncrypt(
+		{ key: rsa_key, padding: crypto.constants.RSA_PKCS1_PADDING },
+		Buffer.from(aes_key.toString('hex'))
+	);
+	// Decrypt using: echo -ne "<aes_key_encrypted_b64>" | base64 -d | openssl rsautl -decrypt -inkey ~/.ssh/id_rsa.pem
+
+	pixels.push({
+		"date": meta.date,
+		"mood": parseInt(meta.mood),
+		"notes": encrypted.toString('base64'),
+		"key": aes_key_encrypted.toString('base64'),
+		"iv": aes_iv.toString('hex')
+	});
+}
+
+// receives a raw entry (in the form of datestring_regex)
+// and returnes a parsed version, reporting any errors to `logger`
+function parseEntry(entry, logger) {
+	meta = entry.match(datestring_regex);
+
+	if (meta == null) {
+		logger(
+			"Entry " + entry + " does not match the date format "
+			+ "(20xx-xx-xx [weekday] mood: x)\nSkipping ...");
+		continue;
+	}
+	meta = meta.groups;
+	meta.date = meta.year+"-"+meta.month+"-"+meta.day;
+
+	// check if date is valid
+	if (!isValidDate(meta.year, meta.month, meta.day)) {
+		logger(
+			"Entry " + entry + " is an invalid date: "
+			+ meta.date + ". Skipping ...");
+		continue;
+	}
+
+	// check if date is a duplicate
+	if (pixels.filter((e) => e.date == meta.date).length != 0) {
+		logger(
+			"Warning: entry " + entry + " is a duplicate!"
+			+ " Both entries will be saved. You might want to note"
+			+ " the circumstances for easier conflict resolution.");
+	}
+
+	// if a weekday was provided, make sure it's correct
+	if (meta.weekday) {
+		const d = new Date(meta.year, meta.month - 1, meta.day);
+		const actual_weekday = weekdays[d.getDay()];
+
+		if (meta.weekday.toUpperCase() != actual_weekday.toUpperCase()) {
+			logger(
+				"Entry " + entry + " says " + meta.weekday
+				+ ", but " + meta.date + " is a " + actual_weekday
+				+ ". Skipping this entry ...");
+			continue;
+		}
+	}
+
+	// remove the first two lines (strip metadata)
+	content = entries[entry].split("\n")
+	content.shift();
+	content.shift();
+	content = content.join("\n");
+
+	return content;
+}
+
 bot.on("message", function(message) {
 	// DEBUG:
 	// if the message is from me and starts with PREFIX, eval() the message
@@ -258,86 +340,16 @@ bot.on("message", function(message) {
 		return;
 	}
 
-	let date = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: (?<weekday>\w+))?\n[Mm]ood:? ?(?<mood>[1-5])\n/;
-	if (message.content.match(date) != null) {
+
+	if (message.content.match(datestring_regex) != null) {
 
 		let rawdata = fs.readFileSync('pixels.json');
 		let pixels = JSON.parse(rawdata);
 
 		entries = message.content.split("\n\n");
 		for (entry in entries) {
-			meta = entries[entry].match(date);
-
-			if (meta == null) {
-				message.channel.send(
-					"Entry " + entry + " does not match the date format "
-					+ "(20xx-xx-xx [weekday] mood: x)\nSkipping ...");
-				continue;
-			}
-			meta = meta.groups;
-			meta.date = meta.year+"-"+meta.month+"-"+meta.day;
-
-			// check if date is valid
-			if (!isValidDate(meta.year, meta.month, meta.day)) {
-				message.channel.send(
-					"Entry " + entry + " is an invalid date: "
-					+ meta.date + ". Skipping ...");
-				continue;
-			}
-
-			// check if date is a duplicate
-			if (pixels.filter((e) => e.date == meta.date).length != 0) {
-				message.channel.send(
-					"Warning: entry " + entry + " is a duplicate!"
-					+ " Both entries will be saved. You might want to note"
-					+ " the circumstances for easier conflict resolution.");
-			}
-
-			// if a weekday was provided, make sure it's correct
-			if (meta.weekday) {
-				const d = new Date(meta.year, meta.month - 1, meta.day);
-				const actual_weekday = weekdays[d.getDay()];
-
-				if (meta.weekday.toUpperCase() != actual_weekday.toUpperCase()) {
-					message.channel.send(
-						"Entry " + entry + " says " + meta.weekday
-						+ ", but " + meta.date + " is a " + actual_weekday
-						+ ". Skipping this entry ...");
-					continue;
-				}
-			}
-
-			// remove the first two lines (strip metadata)
-			content = entries[entry].split("\n")
-			content.shift();
-			content.shift();
-			content = content.join("\n");
-
-			const aes_salt = crypto.randomBytes(16);
-			const aes_pass = crypto.randomBytes(32).toString("base64");
-			const aes_iv = crypto.randomBytes(16);
-			const aes_key = crypto.pbkdf2Sync(aes_pass, aes_salt, 10000, 32, 'sha256');
-			const cipher = crypto.createCipheriv('aes-256-cbc', aes_key, aes_iv);
-			const encrypted = Buffer.concat([cipher.update(content, 'utf8'), cipher.final()]);
-			////console.log("encrypted: "+ encrypted.toString('base64'));
-			////console.log("key: "+aes_key.toString('hex'));
-			////console.log("iv: "+ aes_iv.toString('hex'));
-			// Decrypt using: echo -ne "<notes_hex>" | base64 -d | openssl aes-256-cbc -d -iv <iv_hex> -K <key_hex>
-
-			const rsa_key = RSA_PUBLIC;
-			const aes_key_encrypted = crypto.publicEncrypt(
-				{ key: rsa_key, padding: crypto.constants.RSA_PKCS1_PADDING },
-				Buffer.from(aes_key.toString('hex'))
-			);
-			// Decrypt using: echo -ne "<aes_key_encrypted_b64>" | base64 -d | openssl rsautl -decrypt -inkey ~/.ssh/id_rsa.pem
-
-			pixels.push({
-				"date": meta.date,
-				"mood": parseInt(meta.mood),
-				"notes": encrypted.toString('base64'),
-				"key": aes_key_encrypted.toString('base64'),
-				"iv": aes_iv.toString('hex')
-			});
+			content = parseEntry(entries[entry], message.channel.send);
+			encryptedPush(pixels, content);
 		}
 
 		fs.writeFileSync('pixels.json', JSON.stringify(pixels, null, "\t"));
@@ -380,6 +392,34 @@ bot.on("message", function(message) {
 		setTimeout(()=>{message.delete()}, 10000);
 	}
 });
+
+// encrypts a plaintext pixels data (json) file from `source` to `dest`
+// (useful in combination with decryptor.py when changing the RSA key
+// or when re-encrypting a non-encrypted backup)
+function fromParsedPlaintext(source, dest) {
+	let input = JSON.parse(fs.readFileSync(source));
+
+	for (entry in input) {
+		encryptedPush(pixels, input[entry]);
+	}
+
+	fs.writeFileSync(dest, JSON.stringify(pixels, null, "\t"));
+}
+
+// encrypts an unparsed plaintext file from `source` to `dest`
+// (useful when logging a lot more than 2k characters)
+// this is equivalent to dumping a large file into a discord message
+function fromUnparsedPlaintext(source, dest) {
+	let input = fs.readFileSync(source);
+
+	entries = message.content.split("\n\n");
+	for (entry in entries) {
+		content = parseEntry(entries[entry], console.log);
+		encryptedPush(pixels, entries[entry]);
+	}
+
+	fs.writeFileSync(dest, JSON.stringify(pixels, null, "\t"));
+}
 
 bot.on('ready', function() {
 	console.log('Peter ready!');
