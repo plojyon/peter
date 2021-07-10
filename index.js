@@ -266,7 +266,7 @@ function parseEntry(entry, logger) {
 		logger(
 			"Entry " + entry + " does not match the date format "
 			+ "(20xx-xx-xx [weekday] mood: x)\nSkipping ...");
-		continue;
+		return;
 	}
 	meta = meta.groups;
 	meta.date = meta.year+"-"+meta.month+"-"+meta.day;
@@ -276,7 +276,7 @@ function parseEntry(entry, logger) {
 		logger(
 			"Entry " + entry + " is an invalid date: "
 			+ meta.date + ". Skipping ...");
-		continue;
+		return;
 	}
 
 	// check if date is a duplicate
@@ -297,7 +297,7 @@ function parseEntry(entry, logger) {
 				"Entry " + entry + " says " + meta.weekday
 				+ ", but " + meta.date + " is a " + actual_weekday
 				+ ". Skipping this entry ...");
-			continue;
+			return;
 		}
 	}
 
@@ -352,7 +352,8 @@ bot.on("message", function(message) {
 		entries = message.content.split("\n\n");
 		for (entry in entries) {
 			entry = parseEntry(entries[entry], message.channel.send);
-			encryptedPush(pixels, entry);
+			if (entry)
+				encryptedPush(pixels, entry);
 		}
 
 		fs.writeFileSync('pixels.json', JSON.stringify(pixels, null, "\t"));
@@ -421,7 +422,8 @@ function fromUnparsedPlaintext(source, dest) {
 	entries = message.content.split("\n\n");
 	for (e in entries) {
 		entry = parseEntry(entries[e], console.log);
-		encryptedPush(pixels, entry);
+		if (entry)
+			encryptedPush(pixels, entry);
 	}
 
 	fs.writeFileSync(dest, JSON.stringify(pixels, null, "\t"));
