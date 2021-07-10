@@ -203,7 +203,7 @@ function status() {
 		last_weekday = "yesterday";
 	else
 		last_weekday = weekdays[new Date(last_date).getDay()];
-	str = "Last updated: **" + last_weekday + "** ("+last_date+")";
+	str = "Last updated **" + last_weekday + "** ("+last_date+")";
 
 	// add a warning if this was a long time ago
 	const diffTime = Math.abs(new Date() - new Date(last_date));
@@ -254,7 +254,7 @@ bot.on("message", function(message) {
 		// delete the user query immediately
 		message.delete().catch();
 		// delete the reply after 20s
-		sendPromise.then(m => setTimeout(()=>m.delete().catch(), 20*1000));
+		sendPromise.then(m => setTimeout(()=>m.delete().catch(), 60*1000));
 		return;
 	}
 
