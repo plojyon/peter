@@ -199,7 +199,7 @@ function status() {
 	let last_weekday;
 	if (last_date == date2str(new Date()))
 		last_weekday = "today";
-	else if (last_date == date2str(new Date(new Date()-1))
+	else if (last_date == date2str(new Date(new Date()-1)))
 		last_weekday = "yesterday";
 	else
 		last_weekday = weekdays[new Date(last_date).getDay()];
