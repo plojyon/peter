@@ -28,6 +28,10 @@ RSA_PUBLIC = process.env["RSA_PUBLIC"];
 if (!RSA_PUBLIC) console.log("Missing RSA_PUBLIC");
 else RSA_PUBLIC = RSA_PUBLIC.replace(/\\n/g, "\n");
 
+// when querying "pixels" instead of "pixels full", ignore dates preceding this
+DEFAULT_START_FILTER = process.env["DEFAULT_START_FILTER"];
+if (!DEFAULT_START_FILTER) console.log("Missing DEFAULT_START_FILTER");
+
 const weekdays = [
 	"Sunday",
 	"Monday",
@@ -164,7 +168,7 @@ function group_sequences(pixels) {
 	return converted;
 }
 
-function status() {
+function status(start="") {
 	// Last updated on Wednesday
 	// Missing: 2021-03-01, 2020-04-21
 	// Duplicate: 2021-03-22
@@ -181,8 +185,15 @@ function status() {
 
 	let duplicate = find_duplicate_entries(pixels);
 	let missing = find_missing_entries(pixels, duplicate);
-	missing = group_sequences(missing); // in case I accidentally add an entry in 2077 or something
 	let invalid = find_invalid_entries(pixels);
+
+	// filter only events after the date supplied by "start"
+	duplicate = duplicate.filter(x => x > start)
+	missing = missing.filter(x => x > start)
+	invalid = invalid.filter(x => x > start)
+
+	// group missing pixels in case I accidentally add an entry in 2077
+	missing = group_sequences(missing);
 
 	// add message formatting
 	duplicate = duplicate.map((x) => "`" + x + "`");
@@ -334,8 +345,14 @@ bot.on("message", function(message) {
 		}
 	}
 
-	if (message.content == "pixels") {
-		let sendPromise = message.channel.send(status());
+	if (message.content.indexOf("pixels") == 0) {
+		let sendPromise;
+		if (message.content == "pixels") {
+			sendPromise = message.channel.send(status(DEFAULT_START_FILTER));
+		}
+		else {
+			sendPromise = message.channel.send(status());
+		}
 		// delete the user query immediately
 		message.delete().catch();
 		// delete the reply after 20s
