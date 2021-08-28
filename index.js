@@ -171,12 +171,7 @@ function group_sequences(pixels) {
 	return converted;
 }
 
-function status(start="") {
-	// Last updated on Wednesday
-	// Missing: 2021-03-01, 2020-04-21
-	// Duplicate: 2021-03-22
-	let str = "";
-
+function get_status(start="") {
 	let rawdata = fs.readFileSync('pixels.json');
 	let pixels = JSON.parse(rawdata);
 	pixels.sort((a, b) => {
@@ -211,33 +206,64 @@ function status(start="") {
 		last_date = pixels[last_index].date;
 	} while (!isValidDateString(last_date) && last_index != 0);
 
-	let last_weekday;
-	if (last_date == date2str(new Date()))
+	return {
+		"duplicate": duplicate,
+		"missing": missing,
+		"invalid": invalid,
+		"last": {
+			"pixel": pixels[last_index],
+			"date": last_date,
+			"weekday": weekdays[new Date(last_date).getDay()],
+		},
+		"pixels": pixels,
+	}
+}
+
+function status(start="") {
+	// Last updated on Wednesday
+	// Missing: 2021-03-01, 2020-04-21
+	// Duplicate: 2021-03-22
+	let str = "";
+
+	status = get_status(start)
+
+	let last_weekday = status.last.weekday;
+	if (status.last.date == date2str(new Date()))
 		last_weekday = "today";
-	else if (last_date == date2str(new Date(new Date()-1)))
+	else if (status.last.date == date2str(new Date(new Date()-1)))
 		last_weekday = "yesterday";
-	else
-		last_weekday = weekdays[new Date(last_date).getDay()];
-	str = "Last updated **" + last_weekday + "** ("+last_date+")";
+	str = "Last updated **" + last_weekday + "** ("+status.last.date+")";
 
 	// add a warning if this was a long time ago
-	const diffTime = Math.abs(new Date() - new Date(last_date));
+	const diffTime = Math.abs(new Date() - new Date(status.last.date));
 	// (assuming last_date is in the past)
 	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 	if (diffDays >= 7)
 		str += " [more than a week ago]";
 
-	if (missing.length > 0) {
-		str += "\nMissing: " + missing.join(", ");
+	if (status.missing.length > 0) {
+		str += "\nMissing: " + status.missing.join(", ");
 	}
-	if (duplicate.length > 0) {
-		str += "\nDuplicate: " + duplicate.join(", ");
+	if (status.duplicate.length > 0) {
+		str += "\nDuplicate: " + status.duplicate.join(", ");
 	}
-	if (invalid.length > 0) {
-		str += "\nInvalid: " + invalid.join(", ");
+	if (status.invalid.length > 0) {
+		str += "\nInvalid: " + status.invalid.join(", ");
 	}
 
 	return str;
+}
+
+function template() {
+	let status = get_status()
+	let str = ""
+	let day = new Date(status.last.date) // int i = 0
+	while (!dateEquals(day, new Date())) { // while (i < n)
+		day = tomorrow(day) // i++
+		weekday = weekdays[day.getDay()]
+		str += date2str(day) + " ("+weekday+")\nmood: \n\n"
+	}
+	return str
 }
 
 function encryptedPush(pixels, entry) {
@@ -363,6 +389,14 @@ bot.on("message", function(message) {
 		return;
 	}
 
+	if (message.content.toLowerCase() == "template") {
+		sendPromise = message.channel.send(template());
+		// delete the user query immediately
+		message.delete().catch();
+		// delete the reply after a few seconds
+		sendPromise.then(m => setTimeout(()=>m.delete().catch(), TIMEOUT));
+		return;
+	}
 
 	if (message.content.match(datestring_regex) != null) {
 
