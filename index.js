@@ -11,7 +11,7 @@ const client = bot; // alias
 const fs = require('fs'); // FILE SYSTEM
 const crypto = require('crypto');
 require('dotenv').config({path: __dirname + '/.env'}); // env variables (client secret)
-const datestring_regex = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: (?<weekday>\w+))?\n[Mm]ood:? ?(?<mood>[1-5])\n/;
+const datestring_regex = /^(?<year>\d\d\d\d)-(?<month>\d\d)-(?<day>\d\d)(?: \(?(?<weekday>\w+)\)?)?[\n ][Mm]ood:? ?(?<mood>[1-5])[\n ]/;
 
 // if running multiple instances, use this ID to differentiate between them
 CLIENT_ID = process.env["CLIENT_ID"];
