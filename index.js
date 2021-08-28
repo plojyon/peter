@@ -24,6 +24,9 @@ if (!ADMIN_ID) console.log("Missing ADMIN_ID");
 PREFIX = process.env["PREFIX"];
 if (!PREFIX) console.log("Missing PREFIX");
 
+TIMEOUT = process.env["TIMEOUT"];
+if (!TIMEOUT) console.log("Missing TIMEOUT");
+
 RSA_PUBLIC = process.env["RSA_PUBLIC"];
 if (!RSA_PUBLIC) console.log("Missing RSA_PUBLIC");
 else RSA_PUBLIC = RSA_PUBLIC.replace(/\\n/g, "\n");
@@ -355,8 +358,8 @@ bot.on("message", function(message) {
 		}
 		// delete the user query immediately
 		message.delete().catch();
-		// delete the reply after 20s
-		sendPromise.then(m => setTimeout(()=>m.delete().catch(), 60*1000));
+		// delete the reply after a few seconds
+		sendPromise.then(m => setTimeout(()=>m.delete().catch(), TIMEOUT));
 		return;
 	}
 
