@@ -225,7 +225,7 @@ function status(start="") {
 	// Duplicate: 2021-03-22
 	let str = "";
 
-	status = get_status(start)
+	let status = get_status(start)
 
 	let last_weekday = status.last.weekday;
 	if (status.last.date == date2str(new Date()))
