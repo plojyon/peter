@@ -1,7 +1,8 @@
-#!python3
+"""Convert a pixels backup to the old format.
 
-# this script takes a pixels backup in the new format, and converts it to the old, simpler format
-'''
+Usage: python format_old.py <path/input.json> <path/output.json>
+
+# Example:
 input:
 [
 	{
@@ -37,50 +38,59 @@ output:
 	},
 	...
 ]
-'''
+"""
 
 import json
-import sys # command line arguments
+import sys  # command line arguments
 
 if (len(sys.argv) > 3) or ((len(sys.argv) > 1) and (sys.argv[1] == "--help")):
-	print("Usage: "+sys.argv[0]+" <path/input.json> <path/output.json>");
-	exit();
+    print(f"Usage: {sys.argv[0]} <path/input.json> <path/output.json>")
+    exit()
 
-in_filename = sys.argv[1];
-out_filename = sys.argv[2];
+in_filename = sys.argv[1]
+out_filename = sys.argv[2]
 
 with open(in_filename, "r") as file:
-	pixels = json.loads(file.read());
+    pixels = json.loads(file.read())
 
-out = [];
+out = []
 for day in pixels:
-	converted = {};
-	converted["date"] = day["date"];
+    converted = {}
+    converted["date"] = day["date"]
 
-	# assert all data can be converted (no extra new-version data is present)
-	if len(day["entries"]) != 1:
-		print("Error:", day["date"], "has", len(day["entries"]), "entries. Skipped.");
-		continue;
-	if day["entries"][0]["type"] != "Mood":
-		print("Error: entry type of ", day["date"], "is", day["entries"][0]["type"], ". Skipped.");
-		continue;
-	if day["entries"][0]["isHighlighted"]:
-		print("Warning:", day["date"], "is highlighted.");
-	if len(day["entries"][0]["tags"]) != 0:
-		if len(day["entries"][0]["tags"]) > 1:
-			print("Error:", day["date"], "has", len(day["entries"][0]["tags"]), "tags. Skipped.");
-			continue;
-		if day["entries"][0]["tags"][0]["type"] != "Emotions":
-			print("Error:", day["date"], "has non-emotion tags. Skipped.");
-			continue;
-		print("Warning:", day["date"], "has", len(day["entries"][0]["tags"][0]["entries"]), "emotions that will be lost in the conversion.");
+    # assert all data can be converted (no extra new-version data is present)
+    if len(day["entries"]) != 1:
+        print(f"Error: {day['date']} has {len(day['entries'])} entries. Skipped.")
+        continue
+    if day["entries"][0]["type"] != "Mood":
+        print(
+            f"Error: entry type of {day['date']} is {day['entries'][0]['type']}. Skipped."
+        )
+        continue
+    if day["entries"][0]["isHighlighted"]:
+        print(f"Warning: {day['date']} is highlighted.")
+    if len(day["entries"][0]["tags"]) != 0:
+        if len(day["entries"][0]["tags"]) > 1:
+            print(
+                f"Error: {day['date']} has {len(day['entries'][0]['tags'])} tags. Skipped."
+            )
+            continue
+        if day["entries"][0]["tags"][0]["type"] != "Emotions":
+            print(f"Error: {day['date']} has non-emotion tags. Skipped.")
+            continue
 
-	converted["mood"] = day["entries"][0]["value"];
-	converted["notes"] = day["entries"][0]["notes"];
-	out.append(converted);
+        emotions = len(day["entries"][0]["tags"][0]["entries"])
+        print(
+            f"Warning: {day['date']} has {emotions} emotions"
+            + " that will be lost in the conversion."
+        )
 
-out.sort(key=lambda x: x["date"]);
+    converted["mood"] = day["entries"][0]["value"]
+    converted["notes"] = day["entries"][0]["notes"]
+    out.append(converted)
+
+out.sort(key=lambda x: x["date"])
 with open(out_filename, "w") as file:
-	file.write(json.dumps(out));
+    file.write(json.dumps(out))
 
-print("Saved to "+out_filename+".");
+print(f"Saved to {out_filename}.")
